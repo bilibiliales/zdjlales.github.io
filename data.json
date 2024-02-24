@@ -2,10 +2,10 @@
   "public_key": "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDE5UqrCAQjSr0QgLfiR4EA30Os\nUJ3mcqCkq8pH4G9eL6tzQdeeh0yics/1FWu+4y/mzlh+s+TzuGNFVe2e4Q95UfaK\nb/PN8pxA8VqEoo2bShs0ewVnU5z0uxGNxxvNyCAYgl5lVIhqG1vKXLMa7li2AHXA\n5RKI9rZcx2Bd0ieO3QIDAQAB\n-----END PUBLIC KEY-----",
   "users": [
     {
-      "user_id": "qq_BF77CBBACDCE36F9F197FE849BE97811",
+      "user_id": "qq_BF77CBBACDCE36F9F197FE849BE9781",
       "sha256": "770b50e2b5dafece83a3d50bd4443ec1ffd487b181c4af932f25c6ab51e14d23",
       "activated": "no",
-      "bl_lock": "yes",
+      "bl_lock": "no",
       "activation_lock": "no"
     }
   ]
