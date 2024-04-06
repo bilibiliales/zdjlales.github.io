@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <title>极速script捏谱</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <textarea id="output" rows="10" cols="50" style="background-color: gray;"></textarea>
+    <div id="PianoPanel">
+        <div class="piano-wrap">
+            <div>
+                <div class="piano-key">A1</div>
+            </div>
+            <div>
+                <div class="piano-key">A2</div>
+            </div>
+            <div>
+                <div class="piano-key">A3</div>
+            </div>
+            <div>
+                <div class="piano-key">A4</div>
+            </div>
+            <div>
+                <div class="piano-key">A5</div>
+            </div>
+            <div>
+                <div class="piano-key">A6</div>
+            </div>
+            <div>
+                <div class="piano-key">A7</div>
+            </div>
+
+
+            <div>
+                <div class="piano-key">B1</div>
+            </div>
+            <div>
+                <div class="piano-key">B2</div>
+            </div>
+            <div>
+                <div class="piano-key">B3</div>
+            </div>
+            <div>
+                <div class="piano-key">B4</div>
+            </div>
+            <div>
+                <div class="piano-key">B5</div>
+            </div>
+            <div>
+                <div class="piano-key">B6</div>
+            </div>
+            <div>
+                <div class="piano-key">B7</div>
+            </div>
+            
+            <div>
+                <div class="piano-key">C1</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+// 模拟移动设备状态的检测
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+// 获取所有的钢琴按键元素
+const pianoKeys = document.querySelectorAll(".piano-wrap > div");
+
+// 为每个按键添加事件监听器
+pianoKeys.forEach(key => {
+    let keyDown = () => {
+        key.classList.add("piano-key-down");
+    };
+    let keyUp = () => {
+        key.classList.remove("piano-key-down");
+    };
+
+    if (isMobile) {
+        key.addEventListener("touchstart", keyDown);
+        key.addEventListener("touchend", keyUp);
+    } else {
+        key.addEventListener("mousedown", keyDown);
+        key.addEventListener("mouseup", keyUp);
+    }
+});
+
+//读取key
+function handleKeyClick(event) {
+    const keyContent = getCorrespondingContent(event.target.textContent); 
+    outputTextarea.value += keyContent; 
+}
+
+pianoKeys.forEach(key => {
+    key.addEventListener('click', handleKeyClick);
+});
+
+//返回对应JS开源代码
+function getCorrespondingContent(keyContent) {
+    switch (keyContent) {
+        case 'A1':
+            return 'zdjl.click(A1.x,A1.y,50);sleep(a);\n';
+        case 'A2':
+            return 'zdjl.click(A2.x,A2.y,50);sleep(a);\n';
+        case 'A3':
+            return 'zdjl.click(A3.x,A3.y,50);sleep(a);\n';
+        case 'A4':
+            return 'zdjl.click(A4.x,A4.y,50);sleep(a);\n';
+        case 'A5':
+            return 'zdjl.click(A5.x,A5.y,50);sleep(a);\n';
+        case 'A6':
+            return 'zdjl.click(A6.x,A6.y,50);sleep(a);\n';
+        case 'A7':
+            return 'zdjl.click(A7.x,A7.y,50);sleep(a);\n';
+        case 'B1':
+            return 'zdjl.click(B1.x,B1.y,50);sleep(a);\n';
+        case 'B2':
+            return 'zdjl.click(B2.x,B2.y,50);sleep(a);\n';
+        case 'B3':
+            return 'zdjl.click(B3.x,B3.y,50);sleep(a);\n';
+        case 'B4':
+            return 'zdjl.click(B4.x,B4.y,50);sleep(a);\n';
+        case 'B5':
+            return 'zdjl.click(B5.x,B5.y,50);sleep(a);\n';
+        case 'B6':
+            return 'zdjl.click(B6.x,B6.y,50);sleep(a);\n';
+        case 'B7':
+            return 'zdjl.click(B7.x,B7.y,50);sleep(a);\n';
+        case 'C1':
+            return 'zdjl.click(C1.x,C1.y,50);sleep(a);\n';
+        default:
+            return ''; 
+    }
+}
+
+//导出链接
+const outputTextarea = document.getElementById('output');
+const exportLink = document.createElement('a'); 
+exportLink.textContent = '导出脚本代码'; 
+exportLink.style.display = 'block'; 
+exportLink.style.color = 'blue'; 
+exportLink.style.fontSize = '20px'; 
+
+//导出txt文件
+function exportTxt() {
+    const text = outputTextarea.value;
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    exportLink.href = url;
+    exportLink.download = 'JS脚本代码.txt';
+}
+exportLink.addEventListener('click', exportTxt);
+document.body.appendChild(exportLink);
+</script>
+</body>
+</html>
