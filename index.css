@@ -1,0 +1,58 @@
+    margin: 0;padding: 0;
+    -webkit-touch-callout:none;
+    -webkit-user-select:none;
+    -khtml-user-select:none;
+    -moz-user-select:none;
+    -ms-user-select:none;
+    user-select:none;
+}
+
+#output {
+    background-color: #CCCCCC;
+    top: 0px;
+    left: 90px;
+    width: 90%;
+    position: relative;
+}
+
+html {
+    --global-bgColor: #E0E0E0;
+    background-color: var(--global-bgColor);
+    color: white;
+}
+
+#PianoPanel {
+    width: 100%;
+    height: 100vh;
+    box-sizing: border-box;
+    padding-top: 20px;
+    position: relative;
+    z-index: 1;
+}
+
+.piano-wrap {
+    display: grid;
+    grid-template: repeat(3, 90px) / repeat(5, 90px);
+    margin: 0 auto;
+    width: min-content;
+}
+
+.piano-wrap > div {
+    background-color: transparent;
+    transition: 0.5s background-color;
+    display: flex;
+}
+
+.piano-key {
+    background-color: rgb(90, 90, 90);
+    margin: auto;
+    width: 80%;
+    height: 80%;
+    box-sizing: border-box;
+    padding: 4px;
+}
+
+.piano-key-down {
+    transition: 0.5s background-color !important;
+    background-color: yellow !important;
+}
