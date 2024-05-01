@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modify JSON Example</title>
+<script>
+function setStartValue(value) {
+    // 假设你的后端服务接收POST请求，并有一个名为"start"的参数
+    fetch('/api/update-start', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ start: value })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log(data); // 根据后端响应显示一些信息，比如修改是否成功
+        // 可以在这里添加UI反馈，比如显示一个成功消息
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+        // 在这里处理错误情况，比如显示一个错误消息
+    });
+}
+</script>
+</head>
+<body>
+
+<button onclick="setStartValue(0)">Set Start to 0</button>
+<button onclick="setStartValue(1)">Set Start to 1</button>
+
+<!-- 这里可以添加一些其他的UI元素，比如显示状态、错误信息等 -->
+
+</body>
+</html>
