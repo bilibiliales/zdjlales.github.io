@@ -159,7 +159,7 @@
 {"type":"运行JS代码","delay":"0","delayUnit":1,"jsCode":"` + formattedStrings + `"}`
                 //导出脚本文件
                     scriptDownloadButton.addEventListener('click', function () {
-                    const scriptContent = formatteScriptcode;  //zjs文件内容，暂时采用3.0内核
+                    const scriptContent = formatteScriptcode;  //zjs文件内容，暂时采用3.3内核
                     const blob = new Blob([scriptContent], { type: 'text/plain' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
