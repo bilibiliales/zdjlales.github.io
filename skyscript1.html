@@ -7,10 +7,9 @@
 </head>
 <body>
     <h2>Skyscript转换工具</h2>
-    <p>该工具转换文件基于1.0内核</p>
+    <p>该工具转换文件基于1.0内核<a href="http://bilibiliales.github.io/zdjlales.github.io/skyscript3.html">>>>转化为基于3.0内核版本的脚本/文件-<<<</a></p>
     <p>上传前请仔细检查文件格式，上传文件过大文件会导致页面卡死</p>
     <input type="file" id="fileInput" accept=".txt"><br><br>
-
     <input type="text" id="urlInput" placeholder="请输入文件的 URL">
     <button id="urlButton">解析URL</button><br><br>
 
@@ -103,17 +102,15 @@
             // 构建要显示的HTML字符串
             const displayData = `
                             <h4>乐谱信息识别成功：</h4>
-                            <p>乐谱名称：${name}</p>
+                            <h6>乐谱名称：${name}</h6>
                             <p>作者：${author}</p>
-                            <p>BPM：${bpm}</p>
-                            <p>拍子： ${paizi}</p>
                             <p>加密：${isEncrypted}</p>
                         `;
             songInfoDiv.innerHTML = displayData;
 
             if (isEncrypted!=true) {
                 // 处理 songNotes 并生成格式化字符串
-                let formattedStrings = "const BPM = " + bpm + ";const n = 4;" + "const m = " + paizi + ";var a = 60000/BPM/m;";  //使用转义字符会导致JSON格式问题，所以移除了换行
+                let formattedStrings = "";  //使用转义字符会导致JSON格式问题，所以移除了换行
                 const songNotes = songData.songNotes;
                 for (let i = 0; i < songNotes.length; i++) {
                     const key = songNotes[i].key;
