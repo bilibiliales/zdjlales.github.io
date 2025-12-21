@@ -3,178 +3,422 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skyscript转换工具</title>
+    <title>Skyscript转换工具（支持加密解密）</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        .upload-area:hover {
+            border-color: #4CAF50;
+        }
+        .upload-area.highlight {
+            border-color: #4CAF50;
+            background-color: #f0fff0;
+        }
+        #fileInput {
+            display: none;
+        }
+        .status {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f0f0f0;
+            min-height: 40px;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            margin-right: 10px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .download-btn {
+            display: none;
+            margin-top: 20px;
+        }
+        .log {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
 </head>
 <body>
-    <h2>Skyscript转换工具</h2>
-    <p>该工具转换文件基于3.3内核<a href="http://bilibiliales.github.io/zdjlales.github.io/skyscript1.html">>>>转化为基于1.0内核版本的脚本/文件-<<<</a></p>
-    <p>上传前请仔细检查文件格式，上传文件过大文件会导致页面卡死</p>
-    <input type="file" id="fileInput" accept=".txt"><br><br>
-    <input type="text" id="urlInput" placeholder="请输入文件的 URL">
-    <button id="urlButton">解析URL</button><br><br>
-
-
-    <button id="replaceButton">开始转换</button>
-    <div id="toast"></div>
-    <div id="songInfo"></div>
-    <div id="finished"></div>
-
-    <br><button id="downloadButton" style="display:none;">下载代码文件</button><br>
+    <div class="container">
+        <h1>Skyscript转换工具</h1>
+        
+        <div class="upload-area" id="uploadArea">
+            <h3>点击或拖拽文件到此处上传</h3>
+            <p>支持 .txt 格式的加密/未加密文件</p>
+            <input type="file" id="fileInput" accept=".txt">
+        </div>
+        
+        <div class="status" id="status">等待上传文件...</div>
+        
+        <div id="actions">
+            <button class="btn" id="replaceButton" disabled>开始转换</button>
+            <button class="btn download-btn" id="downloadButton" style="display:none;">下载代码文件</button>
+            <button class="btn download-btn" id="scriptDownloadButton" style="display:none;">下载脚本文件</button>
+        </div>
+        
+        <div id="songInfo"></div>
+        <div id="finished"></div>
+        <div class="log" id="log"></div>
+    </div>
 
     <script>
+        // 1. 解密工具核心代码（来自Sky Studio解密工具）
+        const enc_ragus = [
+            0x0E, 0x18, 0x76, 0x08, 0x7C, 0x0B, 0x27, 0x77,
+            0x0F, 0x16, 0x1C, 0x02, 0x1C, 0x6D, 0x67, 0x21,
+            0x34, 0x0F, 0x6D, 0x2C, 0x65, 0x3C, 0x23, 0x79,
+            0x11, 0x32, 0x28, 0x63, 0x17, 0x32, 0x2F, 0x2F
+        ];
+        const enc_tlas = [
+            0x20, 0x2E, 0x18, 0x05, 0x31, 0x3B, 0x1C, 0x3F,
+            0x0B, 0x3F, 0x75, 0x2D, 0x3B, 0x62, 0x11, 0x2B,
+            0x21, 0x28, 0x05, 0x30, 0x20, 0x7B, 0x28, 0x67,
+            0x0A, 0x07, 0x73, 0x32, 0x0B, 0x16, 0x72, 0x3C
+        ];
+        const xor_key = 0x5A;
+
+        function decryptKey(data) {
+            let result = '';
+            for (let i = 0; i < data.length; i++) {
+                result += String.fromCharCode(data[i] ^ xor_key);
+            }
+            return result;
+        }
+
+        const RAGUS = decryptKey(enc_ragus);
+        const TLAS = decryptKey(enc_tlas);
+
+        function decrypt(shortList, onLog) {
+            let result = '';
+            const length = shortList.length;
+
+            for (let i = 0; i < length; i++) {
+                const val = shortList[i];
+                const keyChar = RAGUS.charAt(i % RAGUS.length);
+                const decrypted = val - keyChar.charCodeAt(0) + 100;
+
+                if (decrypted >= 0 && decrypted < 0x110000) {
+                    result += String.fromCharCode(decrypted);
+                } else {
+                    onLog(`[!] 警告: 位置 ${i} 的字符无效: ${decrypted}`);
+                    result += '?';
+                }
+            }
+
+            const tlasIndex = result.indexOf(TLAS);
+            if (tlasIndex !== -1) {
+                result = result.substring(0, tlasIndex);
+            }
+
+            return result;
+        }
+
+        function decryptContent(jsonContent, onLog) {
+            try {
+                onLog('[*] 开始解密...');
+                onLog(`[*] 文件大小: ${jsonContent.length} 字符`);
+
+                onLog('[*] 解析JSON...');
+                const dataArray = JSON.parse(jsonContent);
+                
+                if (dataArray.length === 0) {
+                    throw new Error('文件格式错误：空数组');
+                }
+
+                const song = dataArray[0];
+                const isEncrypted = song.isEncrypted || false;
+                onLog(`[*] isEncrypted: ${isEncrypted}`);
+                
+                if (!isEncrypted) {
+                    onLog('[*] 文件未加密，直接返回');
+                    return jsonContent;
+                }
+
+                onLog('[*] 检测到加密文件');
+                const encryptedNotes = song.songNotes;
+                const totalNotes = encryptedNotes.length;
+                onLog(`[*] 加密数据长度: ${totalNotes}`);
+
+                onLog('[*] 解密中...');
+                const decryptedJson = decrypt(encryptedNotes, onLog);
+
+                onLog('[*] 解析解密数据...');
+                const notesArray = JSON.parse(decryptedJson);
+
+                const plaintext = {};
+                for (const key in song) {
+                    if (key !== 'isEncrypted' && key !== 'keyVersion' && key !== 'songNotes') {
+                        plaintext[key] = song[key];
+                    }
+                }
+
+                plaintext.isEncrypted = false;
+                plaintext.songNotes = notesArray;
+
+                const outputArray = [plaintext];
+                const result = JSON.stringify(outputArray, null, 2);
+
+                onLog('━━━━━━━━━━━━━━━━━━━━');
+                onLog('[成功] 解密完成');
+                onLog('━━━━━━━━━━━━━━━━━━━━');
+                onLog(`[+] 音符数量: ${notesArray.length}`);
+                onLog(`[*] 解密后大小: ${result.length} 字符`);
+                
+                return result;
+            } catch (e) {
+                onLog(`[!] 错误: ${e.message}`);
+                throw e;
+            }
+        }
+
+        // 2. 转换工具核心代码（来自Skyscript转换工具）
         let modifiedContent = '';
-
-        //本地上传
-        document.getElementById('fileInput').addEventListener('change', function (event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    modifiedContent = e.target.result;
-                };
-                reader.readAsText(file);
-            }
-        });
-
-        //URL上传
-        document.getElementById('urlButton').addEventListener('click', function () {
-            const url = document.getElementById('urlInput').value;
-            if (url) {
-                fetch(url)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('网络响应错误');
-                        }
-                        return response.text();
-                    })
-                    .then(data => {
-                        modifiedContent = data;
-                    })
-                    .catch(error => {
-                        console.error('获取URL内容时出错:', error);
-                        alert('无法获取 URL 内容，请检查 URL 是否有效。');
-                    });
-            } else {
-                alert('请先输入 URL。');
-            }
-        });
-
-        // 替换关键词库
         const searchList1 = ["\"1Key0\"", "\"1Key1\"", "\"1Key2\"", "\"1Key3\"", "\"1Key4\"", "\"1Key5\"", "\"1Key6\"", "\"1Key7\"", "\"1Key8\"", "\"1Key9\"", "\"1Key10\"", "\"1Key11\"", "\"1Key12\"", "\"1Key13\"", "\"1Key14\""];
         const searchList2 = ["\"2Key0\"", "\"2Key1\"", "\"2Key2\"", "\"2Key3\"", "\"2Key4\"", "\"2Key5\"", "\"2Key6\"", "\"2Key7\"", "\"2Key8\"", "\"2Key9\"", "\"2Key10\"", "\"2Key11\"", "\"2Key12\"", "\"2Key13\"", "\"2Key14\""];
         const replaceList = ["\"A1\"", "\"A2\"", "\"A3\"", "\"A4\"", "\"A5\"", "\"A6\"", "\"A7\"", "\"B1\"", "\"B2\"", "\"B3\"", "\"B4\"", "\"B5\"", "\"B6\"", "\"B7\"", "\"C1\""];
 
-        document.getElementById('replaceButton').addEventListener('click', function () {
-            const toastdiv = document.getElementById("toast");
-            toastdiv.innerHTML = `
-                        <h3>正在开始转换，这可能需要几分钟......</h3>
-                        <h5>请勿断电或离开此页面，如下方未显示乐谱信息请确保文件格式正确</h5>
-                        <h5>若页面长时间未显示请按F5刷新页面并上传更小的文件</h5>
-                    `;
+        // 3. 文件上传处理
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const status = document.getElementById('status');
+        const replaceButton = document.getElementById('replaceButton');
+        const downloadButton = document.getElementById('downloadButton');
+        const scriptDownloadButton = document.getElementById('scriptDownloadButton');
+        const log = document.getElementById('log');
 
-            //版本1替换
-            for (let i = 0; i < searchList1.length; i++) {
-                const searchText = searchList1[i];
-                const replaceText = replaceList[i];
-                const regExp = new RegExp(searchText, 'g');
-                modifiedContent = modifiedContent.replace(regExp, replaceText);
-            }
-            //版本2替换
-            for (let i = 0; i < searchList2.length; i++) {
-                const searchText = searchList2[i];
-                const replaceText = replaceList[i];
-                const regExp = new RegExp(searchText, 'g');
-                modifiedContent = modifiedContent.replace(regExp, replaceText);
-            }
+        // 拖拽上传
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('highlight');
+        });
 
-            // 显示信息
-            const modifiedContentObj = JSON.parse(modifiedContent);
-            const songData = modifiedContentObj[0];
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('highlight');
+        });
 
-            // 检查属性是否存在
-            const songInfoDiv = document.getElementById('songInfo');
-            const name = songData.name || "未定义";
-            const author = songData.author || "未定义";
-            const bpm = songData.bpm || "未定义";
-            const bitsPerPage = songData.bitsPerPage || 0;
-            const paizi = `${Math.floor(bitsPerPage / 4)}/4`;
-            const isEncrypted = songData.isEncrypted;
-            // 构建要显示的HTML字符串
-            const displayData = `
-                            <h4>乐谱信息识别成功：</h4>
-                            <p>乐谱名称：${name}</p>
-                            <p>作者：${author}</p>
-                            <p>BPM：${bpm}</p>
-                            <p>拍子： ${paizi}</p>
-                            <p>加密：${isEncrypted}</p>
-                        `;
-            songInfoDiv.innerHTML = displayData;
-
-            if (isEncrypted!=true) {
-                // 处理 songNotes 并生成格式化字符串
-                let formattedStrings = "const BPM = " + bpm + ";const n = 4;" + "const m = " + paizi + ";var a = 60000/BPM/x;";  //使用转义字符会导致JSON格式问题，所以移除了换行
-                const songNotes = songData.songNotes;
-                var origon_bpm = 0;
-                let i = 0;
-                while (!(origon_bpm)) {
-                    origon_bpm = songNotes[i + 1].time - songNotes[i].time;
-                    i++;
-                }
-                for (let i = 0; i < songNotes.length; i++) {
-                    const key = songNotes[i].key;
-                    const a = (i < songNotes.length - 1) ? ((songNotes[i + 1].time - songNotes[i].time)+"*a") : 0;
-
-                    // 生成格式化字符串
-                    formattedStrings += `zdjl.click(${key}.x, ${key}.y, 1);sleep(${a});`;  //代码中不能含有"//"的注释，可以使用"/**/"或脚本动作自带注释
-                }
-                const finisheddiv = document.getElementById("finished");
-                finisheddiv.innerHTML = `
-                            <h3>转换成功</h3>
-                            <h5>点击下方按钮可下载代码文件或直接生成脚本文件</h5>
-                        `;
-
-                // 设置下载按钮可见
-                document.getElementById('downloadButton').style.display = 'block';
-                const scriptDownloadButton = document.createElement('button');
-                scriptDownloadButton.innerText = '下载脚本文件';
-                document.getElementById('finished').appendChild(scriptDownloadButton);
-
-
-                // 导出代码文件
-                document.getElementById('downloadButton').addEventListener('click', function () {
-                    const blob = new Blob([formattedStrings], { type: 'text/plain' });  //txt文件内容
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = name + '_skyscript.txt';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                });
-
-                //格式化zsj文件内容
-                const formatteScriptcode=`{"repeatCount":-1,"pauseOnFail":true,"count":3,"minVerCode":2026000,"minVerName":"2.26.0","screenWidth":0,"screenHeight":0,"screenDpi":0,"lastSaveScreenWidth":1312,"lastSaveScreenHeight":2848,"lastSaveScreenDpi":3.5,"savedVerCode":2027020,"savedVerName":"2.27.2","description":"`+"该脚本通过机器制造，基于开源3.3内核，仅可用作学习交流，不得进行商业化用途。3.3版本转换器可能存在原始BPM错误的情况，建议在var a;一行中增加：/数字的操作" + `","delay":""}
-{"type":"设置变量","delay":"0","delayUnit":0,"desc":"录入位点用于后面的自动点屏幕用","scriptCallbacks":{"afterExecSuc":{"type":"系统提示","delay":"0","delayUnit":0,"condition":{"type":"jsExpression","runWhenFalse":true,"expression":"true","desc":""},"promptType":"alert","promptText":"一切准备就绪！点击确定即可开始运行","promptTitle":"进入游戏主界面后点击确定","showPosition":"default","playAudio":"false","useVibrator":false,"actions":[{"name":"确定"},{"name":"暂停显示5秒","script":{"type":"控制执行","delay":"5","delayUnit":1,"controlRunType":"jumpTo","jumpToPosition":"2","ContinueParentExecute":false}}],"showDuration":5000},"afterExecFail":{"type":"控制执行","delay":"0","delayUnit":1,"controlRunType":"stop","jumpToPosition":"","ContinueParentExecute":false}},"vars":[{"name":"设置音调","value":{"varType":"ui_text","varScope":"script","showInput":true,"mustInput":true,"showInputContentAlign":"left","textContent":"请按照从音调低到高的顺序设置好A1-C1","textSize":15,"textColor":"#e5e5e5"}},{"name":"A1","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"A2","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"A3","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"A4","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"A5","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"A6","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"A7","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"B1","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"B2","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"B3","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"B4","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"B5","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"B6","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"B7","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"C1","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"x","value":{"varType":"number","varScope":"script","showInput":true,"showInputLabel":"倍速：","mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","number":1,"selectItems":[0.25,0.5,0.75,1,1.25,1.5,1.75,2]}},{"name":"倍速修改","value":{"varType":"ui_text","varScope":"script","showInput":true,"mustInput":true,"showInputContentAlign":"left","textContent":"*其它倍速需进入编辑模式修改。该谱默认使用C大调，支持修改大调","textSize":10,"textColor":"#bcbcbc"}}],"dialogTitle":"设置琴键位点","dialogOKText":"继续","dialogCancelText":"none"}
-{"type":"运行JS代码","delay":"0","delayUnit":1,"jsCode":"` + formattedStrings + `"}`
-                //导出脚本文件
-                    scriptDownloadButton.addEventListener('click', function () {
-                    const scriptContent = formatteScriptcode;  //zjs文件内容，暂时采用3.3内核
-                    const blob = new Blob([scriptContent], { type: 'text/plain' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = name + '_skyscript3.zjs';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                });
-            } else {
-                alert("本网站无法为加密的sky乐谱提供转换服务，因为该类型的编码无法被转换工具理解。");
-                window.close();
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('highlight');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
             }
         });
+
+        // 点击上传
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const files = e.target.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (file.type !== 'text/plain' && !file.name.endsWith('.txt')) {
+                status.textContent = '错误：请上传.txt格式的文件';
+                return;
+            }
+
+            status.textContent = `已选择文件: ${file.name}`;
+            replaceButton.disabled = false;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                modifiedContent = e.target.result;
+                addLog(`[+] 已加载文件: ${file.name}`);
+            };
+            reader.readAsText(file);
+        }
+
+        // 4. 转换按钮点击事件（整合解密步骤）
+        replaceButton.addEventListener('click', async function () {
+            if (!modifiedContent) return;
+
+            replaceButton.disabled = true;
+            status.textContent = '处理中...';
+            clearLog();
+
+            try {
+                // 步骤1: 先解密（如果需要）
+                const decryptedContent = decryptContent(modifiedContent, addLog);
+                
+                // 步骤2: 执行原转换逻辑
+                modifiedContent = decryptedContent;
+                
+                // 版本1替换
+                for (let i = 0; i < searchList1.length; i++) {
+                    const searchText = searchList1[i];
+                    const replaceText = replaceList[i];
+                    const regExp = new RegExp(searchText, 'g');
+                    modifiedContent = modifiedContent.replace(regExp, replaceText);
+                }
+                // 版本2替换
+                for (let i = 0; i < searchList2.length; i++) {
+                    const searchText = searchList2[i];
+                    const replaceText = replaceList[i];
+                    const regExp = new RegExp(searchText, 'g');
+                    modifiedContent = modifiedContent.replace(regExp, replaceText);
+                }
+
+                // 显示信息
+                const modifiedContentObj = JSON.parse(modifiedContent);
+                const songData = modifiedContentObj[0];
+
+                // 检查属性是否存在
+                const songInfoDiv = document.getElementById('songInfo');
+                const name = songData.name || "未定义";
+                const author = songData.author || "未定义";
+                const bpm = songData.bpm || "未定义";
+                const bitsPerPage = songData.bitsPerPage || 0;
+                const paizi = `${Math.floor(bitsPerPage / 4)}/4`;
+                const isEncrypted = songData.isEncrypted;
+                // 构建要显示的HTML字符串
+                const displayData = `
+                                <h4>乐谱信息识别成功：</h4>
+                                <p>乐谱名称：${name}</p>
+                                <p>作者：${author}</p>
+                                <p>BPM：${bpm}</p>
+                                <p>拍子： ${paizi}</p>
+                                <p>加密：${isEncrypted}</p>
+                            `;
+                songInfoDiv.innerHTML = displayData;
+
+                if (isEncrypted!=true) {
+                    // 处理 songNotes 并生成格式化字符串
+                    let formattedStrings = "const BPM = " + bpm + ";const n = 4;" + "const m = " + paizi + ";var a = 60000/BPM/x;";  //使用转义字符会导致JSON格式问题，所以移除了换行
+                    const songNotes = songData.songNotes;
+                    var origon_bpm = 0;
+                    let i = 0;
+                    while (!(origon_bpm)) {
+                        origon_bpm = songNotes[i + 1].time - songNotes[i].time;
+                        i++;
+                    }
+                    for (let i = 0; i < songNotes.length; i++) {
+                        const key = songNotes[i].key;
+                        const a = (i < songNotes.length - 1) ? ((songNotes[i + 1].time - songNotes[i].time)+"*a") : 0;
+
+                        // 生成格式化字符串
+                        formattedStrings += `zdjl.click(${key}.x, ${key}.y, 1);sleep(${a});`;  //代码中不能含有"//"的注释，可以使用"/**/"或脚本动作自带注释
+                    }
+                    const finisheddiv = document.getElementById("finished");
+                    finisheddiv.innerHTML = `
+                                <h3>转换成功</h3>
+                                <h5>点击下方按钮可下载代码文件或直接生成脚本文件</h5>
+                            `;
+
+                    // 设置下载按钮可见
+                    downloadButton.style.display = 'inline-block';
+                    scriptDownloadButton.style.display = 'inline-block';
+
+                    // 导出代码文件
+                    downloadButton.addEventListener('click', function () {
+                        const blob = new Blob([formattedStrings], { type: 'text/plain' });  //txt文件内容
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = name + '_skyscript.txt';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    });
+
+                    //格式化zsj文件内容
+                    const formatteScriptcode=`{"repeatCount":-1,"pauseOnFail":true,"count":3,"minVerCode":2026000,"minVerName":"2.26.0","screenWidth":0,"screenHeight":0,"screenDpi":0,"lastSaveScreenWidth":1312,"lastSaveScreenHeight":2848,"lastSaveScreenDpi":3.5,"savedVerCode":2027020,"savedVerName":"2.27.2","description":"`+"该脚本通过机器制造，基于开源3.3内核，仅可用作学习交流，不得进行商业化用途。3.3版本转换器可能存在原始BPM错误的情况，建议在var a;一行中增加：/数字的操作" + `","delay":""}
+{"type":"设置变量","delay":"0","delayUnit":0,"desc":"录入位点用于后面的自动点屏幕用","scriptCallbacks":{"afterExecSuc":{"type":"系统提示","delay":"0","delayUnit":0,"condition":{"type":"jsExpression","runWhenFalse":true,"expression":"true","desc":""},"promptType":"alert","promptText":"一切准备就绪！点击确定即可开始运行","promptTitle":"进入游戏主界面后点击确定","showPosition":"default","playAudio":"false","useVibrator":false,"actions":[{"name":"确定"},{"name":"暂停显示5秒","script":{"type":"控制执行","delay":"5","delayUnit":1,"controlRunType":"jumpTo","jumpToPosition":"2","ContinueParentExecute":false}}],"showDuration":5000},"afterExecFail":{"type":"控制执行","delay":"0","delayUnit":1,"controlRunType":"stop","jumpToPosition":"","ContinueParentExecute":false}},"vars":[{"name":"设置音调","value":{"varType":"ui_text","varScope":"script","showInput":true,"mustInput":true,"showInputContentAlign":"left","textContent":"请按照从音调低到高的顺序设置好A1-C1","textSize":15,"textColor":"#e5e5e5"}},{"name":"A1","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"A2","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"A3","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"A4","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"A5","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"A6","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"A7","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"B1","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"B2","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"B3","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"B4","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"B5","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"B6","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"B7","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"C1","value":{"varType":"position","varScope":"script","showInput":true,"mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","position":{"type":"location","x":"50%","y":"50%"},"findAll":false,"onlyCanChooseLocWhenInput":true}},{"name":"x","value":{"varType":"number","varScope":"script","showInput":true,"showInputLabel":"倍速：","mustInput":true,"rememberInputValue":true,"showInputContentAlign":"left","number":1,"selectItems":[0.25,0.5,0.75,1,1.25,1.5,1.75,2]}},{"name":"倍速修改","value":{"varType":"ui_text","varScope":"script","showInput":true,"mustInput":true,"showInputContentAlign":"left","textContent":"*其它倍速需进入编辑模式修改。该谱默认使用C大调，支持修改大调","textSize":10,"textColor":"#bcbcbc"}}],"dialogTitle":"设置琴键位点","dialogOKText":"继续","dialogCancelText":"none"}
+{"type":"运行JS代码","delay":"0","delayUnit":1,"jsCode":"` + formattedStrings + `"}`
+                    //导出脚本文件
+                    scriptDownloadButton.addEventListener('click', function () {
+                        const scriptContent = formatteScriptcode;  //zjs文件内容，暂时采用3.3内核
+                        const blob = new Blob([scriptContent], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = name + '_skyscript3.zjs';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    });
+                } else {
+                    throw new Error('解密失败，文件仍处于加密状态');
+                }
+
+                status.textContent = '转换成功！';
+            } catch (error) {
+                status.textContent = `处理失败: ${error.message}`;
+                replaceButton.disabled = false;
+                addLog(`[!] 错误: ${error.message}`);
+            }
+        });
+
+        // 日志辅助函数
+        function addLog(message) {
+            const logEntry = document.createElement('div');
+            logEntry.textContent = message;
+            log.appendChild(logEntry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function clearLog() {
+            log.innerHTML = '';
+        }
+
+        // 初始化日志
+        addLog('Skyscript转换工具（支持加密文件）');
+        addLog('━━━━━━━━━━━━━━━━━━━━');
+        addLog('点击或拖拽文件到上传区域开始');
+        addLog('支持加密/未加密文件转换');
+        addLog('');
     </script>
 </body>
 </html>
