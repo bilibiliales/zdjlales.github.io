@@ -21,6 +21,16 @@
             overflow: hidden;
             margin: 0;
             padding: 0;
+            background-image: var(--bg-image);
+        }
+
+        :root {
+            --main-bg-color: #E0E0E0;
+            --main-bg-opacity: 1;
+            --key-opacity: 1;
+            --bg-image: none;
+            --bg-image-size: cover;
+            --bg-image-position: center;
         }
 
         /* 侧边栏样式 */
@@ -36,7 +46,8 @@
         .sidebar {
             width: 380px;
             height: 100%;
-            background-color: #f5f5f5;
+            background-color: var(--main-bg-color);
+            opacity: var(--main-bg-opacity);
             padding: 20px;
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
             overflow-y: auto;
@@ -88,6 +99,7 @@
             border-radius: 4px;
             background-color: #f0f0f0;
             min-height: 40px;
+            opacity: var(--main-bg-opacity);
         }
 
         .btn {
@@ -142,12 +154,15 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background-color: #E0E0E0;
             position: relative;
             overflow: hidden;
+            background-size: var(--bg-image-size);
+            background-position: var(--bg-image-position);
+            background-color: var(--main-bg-color);
+            opacity: var(--main-bg-opacity);
             transition: margin-left 0.3s ease, margin-right 0.3s ease;
-            margin-left: 380px;
-            margin-right: 300px;
+            margin-left: 420px;
+            margin-right: 340px;
         }
 
         #mainContent.sidebar-collapsed {
@@ -161,7 +176,7 @@
         /* 代码框样式 - 替换原textarea */
         #codeContainer {
             width: 80%;
-            height: 150px;
+            height: 200px;
             background-color: #2d2d2d;
             color: #f8f8f2;
             font-family: 'Consolas', 'Monaco', monospace;
@@ -234,6 +249,7 @@
             margin: auto;
             width: var(--key-width, 80%);
             height: var(--key-height, 80%);
+            opacity: var(--key-opacity);
             box-sizing: border-box;
             padding: 4px;
             display: flex;
@@ -285,7 +301,8 @@
         #stylePanel {
             width: 300px;
             height: 100%;
-            background-color: #f5f5f5;
+            background-color: var(--main-bg-color);
+            opacity: var(--main-bg-opacity);
             padding: 20px;
             box-shadow: -2px 0 5px rgba(0,0,0,0.1);
             overflow-y: auto;
@@ -333,6 +350,7 @@
             width: 30px;
             height: 60px;
             background-color: #4CAF50;
+            opacity: var(--main-bg-opacity);
             color: white;
             border: none;
             border-radius: 0 4px 4px 0;
@@ -576,6 +594,32 @@
                 <label for="fontSize">字体大小 (px)</label>
                 <input type="range" id="fontSize" min="10" max="20" value="14">
                 <input type="number" id="fontSizeNum" min="10" max="20" value="14">
+            </div>
+
+            <div class="style-control">
+                <label for="bgColor">背景颜色</label>
+                <input type="color" id="bgColor" value="#F5F5F5">
+            </div>
+
+            <div class="style-control">
+                <label for="bgOpacity">透明度</label>
+                <input type="range" id="bgOpacity" min="0.1" max="1" step="0.01" value="1">
+                <input type="number" id="bgOpacityNum" min="0.1" max="1" step="0.01" value="1">
+            </div>
+
+            <div class="style-control">
+                <label for="keyOpacity">琴键透明度</label>
+                <input type="range" id="keyOpacity" min="0.1" max="1" step="0.01" value="1">
+                <input type="number" id="keyOpacityNum" min="0.1" max="1" step="0.01" value="1">
+            </div>
+
+            <div class="style-control">
+                <label for="bgImageUpload">自定义背景图片</label>
+                <div class="upload-area" id="bgImageUploadArea" style="border: 2px dashed #ccc; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer;">
+                    <p>点击或拖拽上传图片</p>
+                    <input type="file" id="bgImageUpload" accept="image/*" style="display: none;">
+                </div>
+                <button class="btn" id="removeBgImageBtn" style="margin-top: 10px; display: none;">移除背景图</button>
             </div>
         </div>
     </div>
@@ -1297,7 +1341,93 @@
             document.getElementById('keySizeNum').value = keySize;
             document.getElementById('keySpacingNum').value = keySpacing;
             document.getElementById('fontSizeNum').value = fontSize;
+
+            // 新增背景颜色控制
+            const bgColor = document.getElementById('bgColor').value;
+            document.documentElement.style.setProperty('--main-bg-color', bgColor);
+
+            // 新增背景透明度控制
+            const bgOpacity = document.getElementById('bgOpacity').value;
+            document.documentElement.style.setProperty('--main-bg-opacity', bgOpacity);
+            document.getElementById('bgOpacityNum').value = bgOpacity;
+
+            // 新增琴键透明度控制
+            const keyOpacity = document.getElementById('keyOpacity').value;
+            document.documentElement.style.setProperty('--key-opacity', keyOpacity);
+            document.getElementById('keyOpacityNum').value = keyOpacity;
         }
+
+        // 背景图片上传处理
+        const bgImageUploadArea = document.getElementById('bgImageUploadArea');
+        const bgImageUpload = document.getElementById('bgImageUpload');
+        const removeBgImageBtn = document.getElementById('removeBgImageBtn');
+
+        // 拖拽上传背景图
+        bgImageUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            bgImageUploadArea.classList.add('highlight');
+        });
+
+        bgImageUploadArea.addEventListener('dragleave', () => {
+            bgImageUploadArea.classList.remove('highlight');
+        });
+
+        bgImageUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            bgImageUploadArea.classList.remove('highlight');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                handleBgImageUpload(files[0]);
+            }
+        });
+
+        // 点击上传背景图
+        bgImageUploadArea.addEventListener('click', () => {
+            bgImageUpload.click();
+        });
+
+        bgImageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleBgImageUpload(file);
+            }
+        });
+
+        // 处理背景图片上传
+        function handleBgImageUpload(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const imgUrl = e.target.result;
+                document.documentElement.style.setProperty('--bg-image', `url('${imgUrl}')`);
+                removeBgImageBtn.style.display = 'inline-block';
+                addLog(`[+] 已设置自定义背景图片: ${file.name}`);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 移除背景图片
+        removeBgImageBtn.addEventListener('click', () => {
+            document.documentElement.style.setProperty('--bg-image', 'none');
+            removeBgImageBtn.style.display = 'none';
+            addLog('[+] 已移除自定义背景图片');
+        });
+
+        // 背景颜色选择器事件
+        document.getElementById('bgColor').addEventListener('input', updatePianoStyle);
+
+        // 背景透明度控制事件
+        document.getElementById('bgOpacity').addEventListener('input', updatePianoStyle);
+        document.getElementById('bgOpacityNum').addEventListener('change', function() {
+            document.getElementById('bgOpacity').value = this.value;
+            // updatePianoStyle();
+        });
+
+        // 琴键透明度控制事件
+        document.getElementById('keyOpacity').addEventListener('input', updatePianoStyle);
+        document.getElementById('keyOpacityNum').addEventListener('change', function() {
+            document.getElementById('keyOpacity').value = this.value;
+            // updatePianoStyle();
+        });
 
         // 绑定样式控制事件
         document.getElementById('keySize').addEventListener('input', updatePianoStyle);
